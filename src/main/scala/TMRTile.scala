@@ -38,6 +38,8 @@ import freechips.rocketchip.subsystem._
 
 import freechips.rocketchip.util.BooleanToAugmentedBoolean
 
+import freechips.rocketchip.rocket._
+
 case class RocketTileBoundaryBufferParams(force: Boolean = false)
 
 case class TMRTileParams(
@@ -61,6 +63,12 @@ case class TMRTileParams(
     new TMRTile(this, crossing, lookup)
   }
 }
+
+// Comes from .../rocket/subsystem/RocketSubsystem.scala
+case class TMRTileAttachParams(
+  tileParams: TMRTileParams,
+  crossingParams: RocketCrossingParams
+) extends CanAttachTile { type TileType = TMRTile }
 
 class TMRTile private(
       val rocketParams: TMRTileParams,
@@ -172,7 +180,7 @@ class TMRTile private(
 
 class TMRTileModuleImp(outer: TMRTile) extends BaseTileModuleImp(outer)
     with HasFpuOpt
-    with HasLazyRoCCModule
+    with HasTMRRoCCModule
     with HasICacheFrontendModule {
   val core = Module(new TMRCore(outer)(outer.p))
   outer.vector_unit.foreach { v =>
@@ -329,4 +337,27 @@ trait HasFpuOpt { this: TMRTileModuleImp =>
       vu.module.io.fp_resp.bits := DontCare
     }
   }
+}
+
+
+// RoCC Module for TMRTile. Rocket version required a RocketTile
+trait HasTMRRoCCModule extends CanHavePTWModule
+    with HasCoreParameters { this: TMRTileModuleImp =>
+
+  val (respArb, cmdRouter) = if(outer.roccs.nonEmpty) {
+    val respArb = Module(new RRArbiter(new RoCCResponse()(outer.p), outer.roccs.size))
+    val cmdRouter = Module(new RoccCommandRouter(outer.roccs.map(_.opcodes))(outer.p))
+    outer.roccs.zipWithIndex.foreach { case (rocc, i) =>
+      rocc.module.io.ptw ++=: ptwPorts
+      rocc.module.io.cmd <> cmdRouter.io.out(i)
+      val dcIF = Module(new SimpleHellaCacheIF()(outer.p))
+      dcIF.io.requestor <> rocc.module.io.mem
+      dcachePorts += dcIF.io.cache
+      respArb.io.in(i) <> Queue(rocc.module.io.resp)
+    }
+    (Some(respArb), Some(cmdRouter))
+  } else {
+    (None, None)
+  }
+  val roccCSRIOs = outer.roccs.map(_.module.io.csrs)
 }

@@ -20,6 +20,8 @@ import freechips.rocketchip.util.property
 import scala.collection.mutable.ArrayBuffer
 import freechips.rocketchip.trace._
 
+import freechips.rocketchip.rocket._
+
 case class RocketCoreParams(
   xLen: Int = 64,
   pgLevels: Int = 3, // sv39 default
