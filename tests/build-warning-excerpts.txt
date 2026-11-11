@@ -1,0 +1,51 @@
+BASELINE build warning examples (full logs retained locally):
+[warn] /tmp/argus-daniel-20261110/baseline-chipyard/generators/mempress/src/main/scala/ctrl.scala:185:20: procedure syntax is deprecated: instead, add `: Unit =` to explicitly declare `check_resp`'s return type [quickfixable]
+[warn]   def check_resp() {
+[warn]                    ^
+[warn] /tmp/argus-daniel-20261110/baseline-chipyard/generators/mempress/src/main/scala/ctrl.scala:205:20: procedure syntax is deprecated: instead, add `: Unit =` to explicitly declare `check_done`'s return type [quickfixable]
+[warn]   def check_done() {
+[warn]                    ^
+[warn] /tmp/argus-daniel-20261110/baseline-chipyard/generators/mempress/src/main/scala/ctrl.scala:78:32: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method fire,
+[warn] or remove the empty argument list from its definition (Java-defined methods are exempt).
+[warn] In Scala 3, an unapplied method like this will be eta-expanded into a function. [quickfixable]
+[warn]   io.sfence_out := sfence_fire.fire
+[warn]                                ^
+[warn] /tmp/argus-daniel-20261110/baseline-chipyard/generators/compress-acc/src/main/scala/CompressedBitsBuffer.scala:108:51: Auto-application to `()` is deprecated. Supply the empty argument list `()` explicitly to invoke method fire,
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:137:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:89:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:137:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:56:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/devices/debug/DebugTransport.scala:73:7: warning: module contains 3 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/testchipip/src/main/scala/uart/SimUART.scala:26:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/tilelink/Monitor.scala:35:7: warning: module contains 114 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/testchipip/src/main/scala/tsi/TSIToTileLink.scala:36:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/tilelink/Monitor.scala:35:7: warning: module contains 114 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/chipyard/src/main/scala/harness/TestHarness.scala:19:7: warning: module contains 2 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+/tmp/argus-daniel-20261110/baseline-chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.RocketConfig/gen-collateral/SimDRAM.cc:87:52: warning: narrowing conversion of 'mem_size' from 'long long int' to 'size_t' {aka 'long unsigned int'} [-Wnarrowing]
+/tmp/argus-daniel-20261110/baseline-chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.RocketConfig/gen-collateral/uart.cc:7:9: warning: '_XOPEN_SOURCE' redefined
+
+TMR build warning examples (full logs retained locally):
+/tmp/argus-daniel-20261110/tmr-chipyard/build.sbt:62: warning: method sonatypeRepo in class ResolverFunctions is deprecated (since 1.7.0): Use sonatypeOssRepos instead e.g. `resolvers ++= Resolver.sonatypeOssRepos("snapshots")`
+/tmp/argus-daniel-20261110/tmr-chipyard/build.sbt:63: warning: method sonatypeRepo in class ResolverFunctions is deprecated (since 1.7.0): Use sonatypeOssRepos instead e.g. `resolvers ++= Resolver.sonatypeOssRepos("snapshots")`
+[warn] /tmp/argus-daniel-20261110/tmr-chipyard/tools/fixedpoint/src/main/scala/fixedpoint/FixedPoint.scala:30:35: value UnknownWidth in package firrtl is deprecated (since Chisel 6.0): This type has moved to package chisel3
+[warn]   def apply(): FixedPoint = apply(UnknownWidth(), BinaryPoint())
+[warn]                                   ^
+[warn] /tmp/argus-daniel-20261110/tmr-chipyard/tools/fixedpoint/src/main/scala/fixedpoint/FixedPoint.scala:33:20: type Width in package firrtl is deprecated (since Chisel 6.0): This type has moved to package chisel3
+[warn]   def apply(width: Width, binaryPoint: BinaryPoint): FixedPoint = new FixedPoint(width, binaryPoint)
+[warn]                    ^
+[warn] /tmp/argus-daniel-20261110/tmr-chipyard/tools/fixedpoint/src/main/scala/fixedpoint/FixedPoint.scala:38:40: type Width in package firrtl is deprecated (since Chisel 6.0): This type has moved to package chisel3
+[warn]   def fromBigInt(value: BigInt, width: Width, binaryPoint: BinaryPoint): FixedPoint = {
+[warn]                                        ^
+[warn] /tmp/argus-daniel-20261110/tmr-chipyard/tools/fixedpoint/src/main/scala/fixedpoint/FixedPoint.scala:46:18: value UnknownWidth in package firrtl is deprecated (since Chisel 6.0): This type has moved to package chisel3
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:137:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:89:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:137:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/jtag/JtagShifter.scala:56:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/devices/debug/DebugTransport.scala:73:7: warning: module contains 3 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/testchipip/src/main/scala/uart/SimUART.scala:26:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/tilelink/Monitor.scala:35:7: warning: module contains 114 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/testchipip/src/main/scala/tsi/TSIToTileLink.scala:36:7: warning: module contains 1 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/rocket-chip/src/main/scala/tilelink/Monitor.scala:35:7: warning: module contains 114 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+generators/chipyard/src/main/scala/harness/TestHarness.scala:19:7: warning: module contains 2 printf-encoded verification operation(s), which are deprecated and will be removed in the future
+/tmp/argus-daniel-20261110/tmr-chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.RocketConfig/gen-collateral/SimDRAM.cc:87:52: warning: narrowing conversion of 'mem_size' from 'long long int' to 'size_t' {aka 'long unsigned int'} [-Wnarrowing]
+/tmp/argus-daniel-20261110/tmr-chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.RocketConfig/gen-collateral/uart.cc:7:9: warning: '_XOPEN_SOURCE' redefined

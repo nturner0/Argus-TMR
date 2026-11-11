@@ -1,0 +1,34 @@
+{
+  "recorded_utc": "2026-11-11T04:28:00.140210+00:00",
+  "source_local_commit": "243fa54bb7f662a60192a7162282e0e4b05bb3d6",
+  "remote_branch_created": false,
+  "publication_status": "BLOCKED",
+  "git_push_error": "fatal: could not read Username for 'https://github.com': No such device or address",
+  "github_app_write_error": "HTTP 403 Resource not accessible by integration (create tree and create branch)",
+  "full_regression_started": false,
+  "source_preservation_verified": true,
+  "builds": {
+    "baseline": {
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "make CONFIG=RocketConfig -j2",
+      "cwd": "/tmp/argus-daniel-20261110/baseline-chipyard/sims/verilator",
+      "simulator": "/tmp/argus-daniel-20261110/baseline-chipyard/sims/verilator/simulator-chipyard.harness-RocketConfig",
+      "simulator_sha256": "1533163bcce60344393388d800a08fd2eb1b03da614989852cf9eef24530823e",
+      "build_log": "/tmp/argus-daniel-20261110/baseline-build-retry.log",
+      "build_log_sha256": "2a0e1fe080bd0e56f2a100a4a75f4b7d51da489e63b9dffc0cd250018bdb408d",
+      "emitted_isa": "rv64imafdcbzicsr_zifencei_zihpm_zfh_zba_zbb_zbs_xrocket"
+    },
+    "tmr": {
+      "status": "PASS",
+      "exit_code": 0,
+      "command": "make CONFIG=RocketConfig -j2",
+      "cwd": "/tmp/argus-daniel-20261110/tmr-chipyard/sims/verilator",
+      "simulator": "/tmp/argus-daniel-20261110/tmr-chipyard/sims/verilator/simulator-chipyard.harness-RocketConfig",
+      "simulator_sha256": "4fe0cd9dae76399bc741abff6e0696585c60ea5413177860cb5d2d194e8efb26",
+      "build_log": "/tmp/argus-daniel-20261110/tmr-isolated-build.log",
+      "build_log_sha256": "80ecd7ff06c4f3d3992982db71519edb7bc19d5b1dfd15cdd69bbad9b4be6c39",
+      "emitted_isa": "rv64imafdcbzicsr_zifencei_zihpm_zfh_zba_zbb_zbs_xrocket"
+    }
+  }
+}

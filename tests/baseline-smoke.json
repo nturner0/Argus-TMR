@@ -1,0 +1,14 @@
+{
+  "test": "rv64ui-p-simple",
+  "label": "baseline",
+  "result": "PASS",
+  "exit_code": 0,
+  "command": "make CONFIG=RocketConfig BREAK_SIM_PREREQ=1 BINARY=/tmp/argus-daniel-20261110/isa-binaries/rv64ui-p-simple RANDOM_SEED=1 TIMEOUT_CYCLES=10000000 EXTRA_SIM_FLAGS=+verbose run-binary-fast",
+  "cwd": "/tmp/argus-daniel-20261110/baseline-chipyard/sims/verilator",
+  "evidence": [
+    "*** PASSED *** Completed after                31136 simulation cycles"
+  ],
+  "seconds": 8.902,
+  "log": "/tmp/argus-daniel-20261110/results/baseline-smoke.log",
+  "binary_sha256": "e589fe6b0b7051922e81d1c084fbaa72999497c54ac182471028d1fb8ec6804f"
+}
