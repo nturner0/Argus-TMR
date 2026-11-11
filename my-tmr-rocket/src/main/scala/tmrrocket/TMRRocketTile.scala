@@ -5,13 +5,14 @@ package tmrrocket
 
 import chisel3._
 
+import chisel3.util._
+
 import org.chipsalliance.cde.config._
 import org.chipsalliance.diplomacy.lazymodule._
 
 import freechips.rocketchip.tile._
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.tilelink.TLWidthWidget
-import chisel3.util.log2Ceil
 
 import freechips.rocketchip.devices.tilelink.{BasicBusBlockerParams, BasicBusBlocker}
 import org.chipsalliance.diplomacy.DisableMonitors
@@ -50,7 +51,7 @@ case class TMRRocketTileParams(
     clockSinkParams: ClockSinkParameters = ClockSinkParameters(),
     boundaryBuffers: Option[RocketTileBoundaryBufferParams] = None,
     traceParams: Option[TraceEncoderParams] = None
-  ) extends InstantiableTileParams[RocketTile] {
+  ) extends InstantiableTileParams[TMRRocketTile] {
   require(icache.isDefined)
   require(dcache.isDefined)
   val baseName = "tmrrockettile"
@@ -61,18 +62,18 @@ case class TMRRocketTileParams(
 }
 
 class TMRRocketTile private(
-      val rocketParams: RocketTileParams,
-      crossing: ClockCrossingType,
-      lookup: LookupByHartIdImpl,
-      q: Parameters)
-    extends BaseTile(rocketParams, crossing, lookup, q)
+    val rocketParams: TMRRocketTileParams,
+    crossing: ClockCrossingType,
+    lookup: LookupByHartIdImpl,
+    q: Parameters)
+  extends BaseTile(rocketParams, crossing, lookup, q)
     with SinksExternalInterrupts
     with SourcesExternalNotifications
-    with HasLazyRoCC  // implies CanHaveSharedFPU with CanHavePTW with HasHellaCache
-    with HasHellaCache
-{
+    with HasLazyRoCC
+    with HasHellaCache {
+  
   // Private constructor ensures altered LazyModule.p is used implicitly
-  def this(params: RocketTileParams, crossing: HierarchicalElementCrossingParamsLike, lookup: LookupByHartIdImpl)(implicit p: Parameters) =
+  def this(params: TMRRocketTileParams, crossing: HierarchicalElementCrossingParamsLike, lookup: LookupByHartIdImpl)(implicit p: Parameters) =
     this(params, crossing.crossingType, lookup, p)
 
   val intOutwardNode = rocketParams.beuAddr map { _ => IntIdentityNode() }
@@ -100,6 +101,28 @@ class TMRRocketTile private(
     LazyModule(
       new TMRFrontend(tileParams.icache.get, sharedICache)
     )
+
+  // Original HasICache trait did this automatically
+  tlMasterXbar.node :=
+    TLWidthWidget(tileParams.icache.get.rowBits / 8) :=
+      sharedICache.masterNode
+
+  connectTLSlave(
+    sharedICache.slaveNode,
+    tileParams.core.fetchBytes
+  )
+
+  sharedICache.hartIdSinkNodeOpt.foreach {
+    _ := hartIdNexusNode
+  }
+
+  sharedICache.mmioAddressPrefixSinkNodeOpt.foreach {
+    _ := mmioAddressPrefixNexusNode
+  }
+
+  frontend.resetVectorSinkNode := resetVectorNexusNode
+
+  nPTWPorts += 1
 
   /**
    * A Centralized Trace encoder controller,
@@ -139,7 +162,7 @@ class TMRRocketTile private(
   val dtimProperty = dtim_adapter.map(d => Map(
     "sifive,dtim" -> d.device.asProperty)).getOrElse(Nil)
 
-  val itimProperty = frontend.icache.itimProperty.toSeq.flatMap(p => Map("sifive,itim" -> p))
+  val itimProperty = sharedICache.itimProperty.toSeq.flatMap(p => Map("sifive,itim" -> p))
 
   val beuProperty = bus_error_unit.map(d => Map(
           "sifive,buserror" -> d.device.asProperty)).getOrElse(Nil)
@@ -162,7 +185,7 @@ class TMRRocketTile private(
     Resource(cpuDevice, "reg").bind(ResourceAddress(tileId))
   }
 
-  override lazy val module = new RocketTileModuleImp(this)
+  override lazy val module = new TMRRocketTileModuleImp(this)
 
   override def makeMasterBoundaryBuffers(crossing: ClockCrossingType)(implicit p: Parameters) = (rocketParams.boundaryBuffers, crossing) match {
     case (Some(RocketTileBoundaryBufferParams(true )), _)                   => TLBuffer()
@@ -177,11 +200,66 @@ class TMRRocketTile private(
   }
 }
 
-class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
-    with HasFpuOpt
-    with HasLazyRoCCModule
-    with HasICacheFrontendModule {
-  val core = Module(new Rocket(outer)(outer.p))
+class TMRRocketTileModuleImp(outer: TMRRocketTile)
+    extends BaseTileModuleImp(outer)
+    with HasTMRFpuOpt
+    with HasTMRLazyRoCCModule {
+
+  // Instantiate shared ITLB
+  val icacheParams = outer.tileParams.icache.get
+
+  val sharedITLB = Module(new TLB(
+    true,
+    log2Ceil(icacheParams.fetchBytes),
+    TLBConfig(
+      icacheParams.nTLBSets,
+      icacheParams.nTLBWays,
+      icacheParams.nTLBBasePageSectors,
+      icacheParams.nTLBSuperpages
+    )
+  )(
+    outer.sharedICache.masterNode.edges.out(0),
+    outer.p
+  ))
+
+  // Get the frontend IO
+  val frontendIO = outer.frontend.module.io
+
+  // Connect frontend to ITLB
+  frontendIO.itlb.req <> sharedITLB.io.req
+  frontendIO.itlb.resp <> sharedITLB.io.resp
+  frontendIO.itlb.sfence <> sharedITLB.io.sfence
+  sharedITLB.io.kill := frontendIO.itlb.kill
+
+  // Connect ITLB to PTW
+  ptwPorts += sharedITLB.io.ptw
+
+  // Connect frontend to I-cache
+  outer.sharedICache.module.clock := clock
+  frontendIO.icache <> outer.sharedICache.module.io
+
+  // Connect frontend context
+  val ctx = frontendIO.context
+  val itlbPTW = sharedITLB.io.ptw
+
+  ctx.prv := itlbPTW.status.prv
+  ctx.virtualMode := itlbPTW.status.v
+  ctx.ptwReqFire := itlbPTW.req.fire
+
+  val customCSRs =
+    itlbPTW.customCSRs.asInstanceOf[RocketCustomCSRs]
+
+  ctx.disableSpeculativeICacheRefill :=
+    customCSRs.disableSpeculativeICacheRefill
+
+  ctx.disableICachePrefetch :=
+    customCSRs.disableICachePrefetch
+
+  ctx.bpmStatic := customCSRs.bpmStatic
+  ctx.flushBTB := customCSRs.flushBTB
+
+  // Instantiate Rocket processor
+  val core = Module(new TMRRocket(outer)(outer.p))
   outer.vector_unit.foreach { v =>
     core.io.vector.get <> v.module.io.core
     v.module.io.tlb <> outer.dcache.module.io.tlb_port
@@ -231,7 +309,7 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   outer.bus_error_unit.foreach { beu =>
     core.io.interrupts.buserror.get := beu.module.io.interrupt
     beu.module.io.errors.dcache := outer.dcache.module.io.errors
-    beu.module.io.errors.icache := outer.frontend.module.io.errors
+    beu.module.io.errors.icache := outer.sharedICache.module.io.errors
   }
 
   core.io.interrupts.nmi.foreach { nmi => nmi := outer.nmiSinkNode.get.bundle }
@@ -299,7 +377,49 @@ class RocketTileModuleImp(outer: RocketTile) extends BaseTileModuleImp(outer)
   ptw.io.requestor <> ptwPorts.toSeq
 }
 
-trait HasFpuOpt { this: RocketTileModuleImp =>
+trait HasTMRLazyRoCCModule extends CanHavePTWModule
+    with HasCoreParameters { this: TMRRocketTileModuleImp =>
+
+  val (respArb, cmdRouter) = if (outer.roccs.nonEmpty) {
+
+    val respArb = Module(
+      new RRArbiter(
+        new RoCCResponse()(outer.p),
+        outer.roccs.size
+      )
+    )
+
+    val cmdRouter = Module(
+      new RoccCommandRouter(
+        outer.roccs.map(_.opcodes)
+      )(outer.p)
+    )
+
+    outer.roccs.zipWithIndex.foreach { case (rocc, i) =>
+
+      rocc.module.io.ptw ++=: ptwPorts
+
+      rocc.module.io.cmd <> cmdRouter.io.out(i)
+
+      val dcIF = Module(new SimpleHellaCacheIF()(outer.p))
+
+      dcIF.io.requestor <> rocc.module.io.mem
+
+      dcachePorts += dcIF.io.cache
+
+      respArb.io.in(i) <> Queue(rocc.module.io.resp)
+    }
+
+    (Some(respArb), Some(cmdRouter))
+
+  } else {
+    (None, None)
+  }
+
+  val roccCSRIOs = outer.roccs.map(_.module.io.csrs)
+}
+
+trait HasTMRFpuOpt { this: TMRRocketTileModuleImp =>
   val fpuOpt = outer.tileParams.core.fpu.map(params => Module(new FPU(params)(outer.p)))
   fpuOpt.foreach { fpu =>
     val nRoCCFPUPorts = outer.roccs.count(_.usesFPU)
