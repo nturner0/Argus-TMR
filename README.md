@@ -27,7 +27,7 @@ make CONFIG=RocketConfig -j2
 make CONFIG=RocketConfig BINARY=$RISCV/riscv64-unknown-elf/share/riscv-tests/isa/rv64ui-p-simple run-binary
 ```
 
-Current verification: fresh TMR and clean baseline builds PASS; rv64ui-p-simple PASS on both with explicit completion after 31,136 cycles. The other 29 selected tests are deferred because source publication is blocked by GitHub credentials/app HTTP 403. The full regression suite has not started. See [the report](tests/REPORT.md), [comparison](tests/comparison.md), and [reproduction instructions](tests/REPRODUCE.md). Source and reports are prepared locally but have not been pushed. Selected ISA regressions establish only normal functional behavior on that subset.
+Current verification: both fresh RocketConfig builds PASS. The same 30 selected ISA binaries PASS on both TMR and clean baseline Rocket (30/30 each after paired retries of two initial wall timeouts; no final failures, skips or timeouts). No functional regressions were observed in this subset. The source snapshot was published and independently verified at `06131946f449be5c0fcd0e09e473a49eb46093d4` before the full suite began. See [the report](tests/REPORT.md), [complete comparison](tests/comparison.md), and [reproduction instructions](tests/REPRODUCE.md). These tests establish normal execution only on the selected subset.
 
 ## Fault injection
 

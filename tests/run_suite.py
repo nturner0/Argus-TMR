@@ -18,20 +18,31 @@ def main():
     ap.add_argument('--isa-dir', type=Path, required=True)
     ap.add_argument('--label', choices=['tmr', 'baseline'], required=True)
     ap.add_argument('--results-dir', type=Path, required=True)
+    ap.add_argument('--wall-timeout', type=float, default=120,
+                    help='Wall seconds per test (default: 120)')
+    ap.add_argument('--only', nargs='+', help='Run only these selected test names')
     ap.add_argument('--source-published-sha', required=True,
                     help='Verified remote source commit; publish before regression.')
     args = ap.parse_args()
+    if args.wall_timeout <= 0:
+        ap.error('--wall-timeout must be positive')
     if not re.fullmatch(r'[0-9a-f]{40}', args.source_published_sha):
         ap.error('Expected a full verified remote source commit SHA')
     rows = list(csv.DictReader((Path(__file__).parent / 'selection.csv').open()))
+    if args.only:
+        unknown = set(args.only) - {r['test'] for r in rows}
+        if unknown:
+            ap.error('Tests are not in selection.csv: ' + ', '.join(sorted(unknown)))
+        rows = [r for r in rows if r['test'] in args.only]
     simulator = args.sim_dir / 'simulator-chipyard.harness-RocketConfig'
     if not simulator.is_file() or not os.access(simulator, os.X_OK):
         ap.error('Build the RocketConfig simulator before running the suite')
     args.results_dir.mkdir(parents=True, exist_ok=True)
     fields = ['test', 'category', 'sha256', 'ran', 'result', 'exit_code',
-              'seconds', 'command', 'evidence', 'log', 'source_published_sha']
+              'seconds', 'command', 'evidence', 'log', 'source_published_sha',
+              'wall_timeout_seconds']
     with (args.results_dir / f'{args.label}_results.csv').open('w') as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
+        writer = csv.DictWriter(f, fieldnames=fields, lineterminator='\n')
         writer.writeheader()
         for row in rows:
             binary = args.isa_dir / row['test']
@@ -41,7 +52,8 @@ def main():
                    'EXTRA_SIM_FLAGS=+verbose', 'run-binary-fast']
             result = dict(row, ran='no', result='SKIP', exit_code='', seconds=0,
                           command=shlex.join(cmd), evidence='', log=str(log),
-                          source_published_sha=args.source_published_sha)
+                          source_published_sha=args.source_published_sha,
+                          wall_timeout_seconds=args.wall_timeout)
             if not binary.is_file():
                 result['evidence'] = 'Missing test ELF'
             elif hashlib.sha256(binary.read_bytes()).hexdigest() != row['sha256']:
@@ -53,15 +65,24 @@ def main():
                                             stderr=subprocess.STDOUT, start_new_session=True)
                     timed_out = False
                     try:
-                        code = proc.wait(timeout=120)
+                        code = proc.wait(timeout=args.wall_timeout)
                     except subprocess.TimeoutExpired:
                         timed_out = True
-                        os.killpg(proc.pid, signal.SIGTERM)
+                        try:
+                            os.killpg(proc.pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
                         try:
                             proc.wait(timeout=5)
                         except subprocess.TimeoutExpired:
+                            pass
+                        # Make may exit before a simulator that handles SIGTERM.
+                        # Kill any remaining group members even if its leader exited.
+                        try:
                             os.killpg(proc.pid, signal.SIGKILL)
-                            proc.wait()
+                        except ProcessLookupError:
+                            pass
+                        proc.wait()
                         code = 124
                 text = log.read_text(errors='replace')
                 passed = re.findall(r'\*\*\* PASSED \*\*\*[^\n]*', text)
@@ -69,7 +90,7 @@ def main():
                 result.update(ran='yes', exit_code=code,
                               seconds=round(time.monotonic()-start, 3))
                 if timed_out or any('timeout' in x.lower() for x in failed):
-                    result.update(result='TIMEOUT', evidence='; '.join(failed) or '120s wall timeout')
+                    result.update(result='TIMEOUT', evidence='; '.join(failed) or f'{args.wall_timeout:g}s wall timeout')
                 elif code == 0 and passed and not failed:
                     result.update(result='PASS', evidence='; '.join(passed))
                 else:

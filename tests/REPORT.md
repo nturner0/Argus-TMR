@@ -1,12 +1,12 @@
 # Argus-TMR functional verification report
 
-Date: 2026-11-11T04:28:00.140210+00:00. **Assignment incomplete: source publication and the full 30-test regression are blocked by GitHub access.** Both processors were freshly built, and only a single build smoke test was executed on each. The remaining 29 selected tests were deliberately deferred to honor the requirement to publish the source before the full regression suite. No results are inferred from historical runs.
+Date: 2026-11-11T04:58:30.047633+00:00. **Both RocketConfig builds PASS. All 30 selected ISA tests PASS on both processors after paired retries of two initial wall timeouts. Final outcomes have no failures, skips or timeouts.** The TMR source was pushed and independently verified on GitHub before the full regression began. This establishes normal functional execution on the selected subset; SEU recovery and radiation fault tolerance have not been tested.
 
 ## 1. Overview
 
-The intended objective is to validate normal RISC-V instruction execution on Daniel's targeted-state TMR Rocket implementation and compare it with unmodified Rocket. Current evidence establishes successful compilation and `rv64ui-p-simple` completion on both builds. It does not establish the requested representative regression coverage.
+The goal was to validate normal instruction execution in Daniel's targeted-state TMR Rocket processor and compare it with unmodified Rocket using identical test binaries, configuration, toolchain and pass criteria. The representative 30-test subset passed on both processors. Initial attempts passed 28/30 on each, with two wall timeouts; both affected tests passed paired longer-limit retries. No functional regression was observed in this subset; it does not verify all processor functionality.
 
-The authoritative original source is `/home/dkhalkha/chipyard/generators/rocket-chip`. The separate publishing repository is `/tmp/argus-daniel-20261110/publish`, branch `daniel_dev`. Its initial local source commit is `243fa54bb7f662a60192a7162282e0e4b05bb3d6`. No remote source/report commit exists, and no daniel_dev branch exists on GitHub as of the final remote check. The intended destination is `https://github.com/nturner0/Argus-TMR/tree/daniel_dev`; it is not a published deliverable yet.
+The authoritative original source is `/home/dkhalkha/chipyard/generators/rocket-chip`. It was preserved without switching branches or modifying source. The separate publishing workspace is `/tmp/argus-daniel-20261110/publish`. The branch is [daniel_dev](https://github.com/nturner0/Argus-TMR/tree/daniel_dev). The initial local source snapshot commit is `243fa54bb7f662a60192a7162282e0e4b05bb3d6`; source and initial documentation were first pushed at verified remote commit `06131946f449be5c0fcd0e09e473a49eb46093d4`. An independent network clone of that commit verified all five SHA-256 source hashes and checked that its 31 tracked files contained no large/generated artifacts before either full regression runner was launched. See source-publication-verification.json.
 
 ## 2. Test environment
 
@@ -25,13 +25,13 @@ The authoritative original source is `/home/dkhalkha/chipyard/generators/rocket-
 | Configuration | RocketConfig; one WithNHugeCores Rocket |
 | Regenerated ISA (both builds) | `rv64imafdcbzicsr_zifencei_zihpm_zfh_zba_zbb_zbs_xrocket` |
 | Build settings | `make CONFIG=RocketConfig -j2`, same activated Chipyard environment |
-| Simulation settings | seed 1; 10,000,000 cycle limit; 120-second wall timeout; verbose completion markers |
+| Simulation settings | seed 1; 10,000,000 cycle limit; 120-second initial wall timeout; 600-second paired retries; verbose completion markers |
 
 Full version output is in environment.txt; recursive submodule revisions are in submodule-revisions.txt. Separate source/build trees are `/tmp/argus-daniel-20261110/tmr-chipyard` and `/tmp/argus-daniel-20261110/baseline-chipyard`. Both use the existing installed toolchain. Build/configuration files match as recorded in shared-build-inputs.json. Existing parent-tree environment changes and unrelated submodule changes were copied consistently; the clean Rocket baseline's 413 tracked paths were checked against the clean revision with no file-content mismatches. No targeted TMR modules or register changes remain in baseline Rocket. Source copying was followed by independent Git metadata setup because Chipyard checks submodule initialization; these are local isolated copies rather than new network clones.
 
 ## 3. TMR implementation summary
 
-Published-ready source files: RocketCore.scala, Frontend.scala, IBuf.scala, TMRShiftQueue.scala and TMRALU.scala, under src/main/scala/rocket. The exact source bytes and checksums are preserved. RocketCore has 62 targeted EX/MEM/WB register declarations or aggregates, enumerated in protected-pipeline-state.json. Frontend fetch/control registers, instruction-buffer state and queue entries/valid bits are also protected.
+Published source files: RocketCore.scala, Frontend.scala, IBuf.scala, TMRShiftQueue.scala and TMRALU.scala, under src/main/scala/rocket. The exact source bytes and checksums are preserved. RocketCore has 62 targeted EX/MEM/WB register declarations or aggregates, enumerated in protected-pipeline-state.json. Frontend fetch/control registers, instruction-buffer state and queue entries/valid bits are also protected.
 
 Protected state has three replicas and uses bitwise majority `(a & b) | (a & c) | (b & c)`. Aggregate voters recurse over scalar leaves. Voted values feed downstream logic; common next-state wiring defaults to the vote, correcting held state when the clock updates, and normal state updates override it for all replicas. Correction depends on enabled clock edges. These changes protect selected register/state elements; they do not triplicate all combinational logic in every pipeline stage.
 
@@ -39,85 +39,100 @@ The authoritative working-tree RocketCore instantiates standard `ALU`. A staged 
 
 ## 4. Test methodology
 
-selection.csv identifies 30 real installed RV64 physical-environment ELF tests and their SHA-256 hashes. Categories cover basic execution, integer arithmetic, bitwise logic, shifts, branches, jumps, all four requested load/store widths, multiplication, division/remainder, AMO and LR/SC. I/M/A are supported by the configuration; floating-point, compressed-specific, virtual-memory and privileged verification are outside this selected subset. No unsupported test was observed; the deferred tests have not been executed.
+selection.csv identifies the 30 installed RV64 physical-environment ISA ELF tests and their SHA-256 hashes. Coverage includes basic execution, arithmetic, bitwise logic, shifts, four branch types, jumps, byte/halfword/word/doubleword loads and stores, multiplication, division/remainder, AMO and LR/SC. The configuration supports I/M/A. No selected test was unavailable, unsupported, skipped or replaced. Only sb and sh needed retries on both processors. Dedicated floating-point, compressed, virtual-memory and privileged suites remain outside this subset.
 
-The same selected ELF bytes were copied to `/tmp/argus-daniel-20261110/isa-binaries`, and all hashes were verified against the installed binaries. Both reported smoke executions used that same directory. See REPRODUCE.md for build and suite commands. The exact executed smoke commands, directories, exit codes, durations and positive completion evidence are in the corresponding smoke JSON and CSV files. The command for both was:
+All selected ELF binaries were copied from the installed toolchain ISA directory to the writable directory `/tmp/argus-daniel-20261110/isa-binaries`; every copy was hash-verified. Both processors ran the same byte-identical files. Before execution, both previously built simulator hashes and all five original/published/isolated-TMR source hashes were rechecked against their saved records. Simulator hashes appear in execution-manifest.json. Independent source/build trees were used; no rebuild or source change was required on resumption.
+
+After environment activation, the actual suite commands were:
 
 ```bash
-make CONFIG=RocketConfig BREAK_SIM_PREREQ=1 \
-  BINARY=/tmp/argus-daniel-20261110/isa-binaries/rv64ui-p-simple \
-  RANDOM_SEED=1 TIMEOUT_CYCLES=10000000 \
-  EXTRA_SIM_FLAGS=+verbose run-binary-fast
+python3 tests/run_suite.py --label tmr \
+  --sim-dir /tmp/argus-daniel-20261110/tmr-chipyard/sims/verilator \
+  --isa-dir /tmp/argus-daniel-20261110/isa-binaries \
+  --results-dir /tmp/argus-daniel-20261110/regression-results \
+  --source-published-sha 06131946f449be5c0fcd0e09e473a49eb46093d4
+python3 tests/run_suite.py --label baseline \
+  --sim-dir /tmp/argus-daniel-20261110/baseline-chipyard/sims/verilator \
+  --isa-dir /tmp/argus-daniel-20261110/isa-binaries \
+  --results-dir /tmp/argus-daniel-20261110/regression-results \
+  --source-published-sha 06131946f449be5c0fcd0e09e473a49eb46093d4
 ```
 
-Each command ran in its own build's sims/verilator directory. `BREAK_SIM_PREREQ=1` uses the independently verified completed simulator build. PASS requires a successful exit code plus the simulator's explicit `*** PASSED ***` marker and no FAILED marker. This simulator uses TestDriver.v with Verilator's generated main; verbose enables its completion print. A make exit code alone is insufficient. Timeouts are attempted nonpasses; skipped tests are excluded from the pass-rate denominator. The runner terminates an entire process group on a wall timeout. The 30-test runner and comparison script were prepared and their CLI syntax checked, but the full runner has not been validated by an actual complete suite execution.
+The two suite runners overlapped in wall time but used independent simulator/build/output directories. Both use `make CONFIG=RocketConfig BREAK_SIM_PREREQ=1 BINARY=<ELF> RANDOM_SEED=1 TIMEOUT_CYCLES=10000000 EXTRA_SIM_FLAGS=+verbose run-binary-fast`. `BREAK_SIM_PREREQ=1` uses the completed, hash-verified simulator without recompiling it. Each CSV row records the exact command, binary hash, exit code, wall duration, local log path, source publication commit and simulator completion evidence. See REPRODUCE.md for the build, activation and comparison commands.
 
-Full build logs and simulation traces are retained locally outside the publishing tree. Only compact smoke excerpts and machine-readable evidence are included in the branch-ready files. CSV rows marked PASS are actual pre-publication smoke observations; SKIP means intentionally deferred, not processor failure.
+PASS requires exit code 0, an explicit simulator `*** PASSED ***` completion marker and no FAILED marker. TestDriver.v prints that marker only when the harness success signal is asserted, with verbose enabled. All 60 final-outcome logs were independently checked for a positive marker and zero exit code; the four initial timeout logs are retained separately. There were 64 total test invocations (32 per processor). A make exit code alone is insufficient. Each test has a 10,000,000 simulation-cycle limit. The initial wall limit was 120 seconds; sb and sh timed out on both processors. Both tests were rerun on both builds with --wall-timeout 600 --only rv64ui-p-sb rv64ui-p-sh, using all other settings unchanged. The corrected runner sends SIGTERM and then kills any remaining group members, even if Make exits first, with up to five seconds allowed for the leader. Initial timeouts count as attempted nonpasses in initial-pass statistics; the final table reports the verified retry results. Skips are excluded from the pass-rate denominator. See timeout-investigation.md and the initial/retry CSVs.
+
+Complete logs remain local in `/tmp/argus-daniel-20261110/regression-results` and `/tmp/argus-daniel-20261110/regression-retries`; `/tmp/argus-daniel-20261110/regression-final-results` contains the merged final CSVs. simulation-log-manifest.csv records their paths, sizes and SHA-256 hashes. No full logs, simulators, waves or generated hardware are included in the published tree. Earlier single-test smoke checks remain as supplementary evidence; the result CSVs now contain the complete new post-publication regression executions, not reused smoke results.
 
 ## 5. Results
 
-Both fresh builds completed with exit code 0. Both smoke tests completed after **31,136 simulation cycles** with explicit PASSED output and exit code 0. The observed cycle count is one test's completion count, not a performance benchmark.
+Both fresh builds completed successfully with exit code 0 using `make CONFIG=RocketConfig -j2`. These exact simulators were used for the full suite. Final outcomes: all 30 distinct selected tests passed on each processor, **30/30 = 100%**, with no remaining failures, skips or timeouts. Initial pass: 28 passed, 2 timed out, 0 failed and 0 skipped on each (28/30 = 93.3%). Paired retries: 2/2 passed on each with the extended wall limit. Each processor had 32 total invocations. The final pass rate is per distinct test after retries, not per invocation; the initial timeouts are not hidden or reclassified. Completion cycle counts matched for 30/30 tests; these observations are not a performance benchmark, and concurrent wall durations must not be interpreted as processor performance.
 
 | ISA Test | Category | Original Rocket | TMR Rocket |
 |---|---|---|---|
 | rv64ui-p-simple | Basic | PASS | PASS |
-| rv64ui-p-add | Arithmetic | SKIP | SKIP |
-| rv64ui-p-addi | Arithmetic | SKIP | SKIP |
-| rv64ui-p-sub | Arithmetic | SKIP | SKIP |
-| rv64ui-p-and | Bitwise | SKIP | SKIP |
-| rv64ui-p-or | Bitwise | SKIP | SKIP |
-| rv64ui-p-xor | Bitwise | SKIP | SKIP |
-| rv64ui-p-sll | Shifts | SKIP | SKIP |
-| rv64ui-p-srl | Shifts | SKIP | SKIP |
-| rv64ui-p-sra | Shifts | SKIP | SKIP |
-| rv64ui-p-beq | Branches | SKIP | SKIP |
-| rv64ui-p-bne | Branches | SKIP | SKIP |
-| rv64ui-p-blt | Branches | SKIP | SKIP |
-| rv64ui-p-bge | Branches | SKIP | SKIP |
-| rv64ui-p-jal | Jumps | SKIP | SKIP |
-| rv64ui-p-jalr | Jumps | SKIP | SKIP |
-| rv64ui-p-lb | Loads | SKIP | SKIP |
-| rv64ui-p-lh | Loads | SKIP | SKIP |
-| rv64ui-p-lw | Loads | SKIP | SKIP |
-| rv64ui-p-ld | Loads | SKIP | SKIP |
-| rv64ui-p-sb | Stores | SKIP | SKIP |
-| rv64ui-p-sh | Stores | SKIP | SKIP |
-| rv64ui-p-sw | Stores | SKIP | SKIP |
-| rv64ui-p-sd | Stores | SKIP | SKIP |
-| rv64um-p-mul | Multiplication | SKIP | SKIP |
-| rv64um-p-mulh | Multiplication | SKIP | SKIP |
-| rv64um-p-div | Division | SKIP | SKIP |
-| rv64um-p-rem | Division | SKIP | SKIP |
-| rv64ua-p-amoadd_d | Atomic | SKIP | SKIP |
-| rv64ua-p-lrsc | Atomic | SKIP | SKIP |
+| rv64ui-p-add | Arithmetic | PASS | PASS |
+| rv64ui-p-addi | Arithmetic | PASS | PASS |
+| rv64ui-p-sub | Arithmetic | PASS | PASS |
+| rv64ui-p-and | Bitwise | PASS | PASS |
+| rv64ui-p-or | Bitwise | PASS | PASS |
+| rv64ui-p-xor | Bitwise | PASS | PASS |
+| rv64ui-p-sll | Shifts | PASS | PASS |
+| rv64ui-p-srl | Shifts | PASS | PASS |
+| rv64ui-p-sra | Shifts | PASS | PASS |
+| rv64ui-p-beq | Branches | PASS | PASS |
+| rv64ui-p-bne | Branches | PASS | PASS |
+| rv64ui-p-blt | Branches | PASS | PASS |
+| rv64ui-p-bge | Branches | PASS | PASS |
+| rv64ui-p-jal | Jumps | PASS | PASS |
+| rv64ui-p-jalr | Jumps | PASS | PASS |
+| rv64ui-p-lb | Loads | PASS | PASS |
+| rv64ui-p-lh | Loads | PASS | PASS |
+| rv64ui-p-lw | Loads | PASS | PASS |
+| rv64ui-p-ld | Loads | PASS | PASS |
+| rv64ui-p-sb | Stores | PASS | PASS |
+| rv64ui-p-sh | Stores | PASS | PASS |
+| rv64ui-p-sw | Stores | PASS | PASS |
+| rv64ui-p-sd | Stores | PASS | PASS |
+| rv64um-p-mul | Multiplication | PASS | PASS |
+| rv64um-p-mulh | Multiplication | PASS | PASS |
+| rv64um-p-div | Division | PASS | PASS |
+| rv64um-p-rem | Division | PASS | PASS |
+| rv64ua-p-amoadd_d | Atomic | PASS | PASS |
+| rv64ua-p-lrsc | Atomic | PASS | PASS |
 
-Original Rocket: selected 30, attempted 1, passed 1, failed 0, skipped 29, timed out 0; pass rate 100.0%. Skips are excluded; timeouts count as attempted nonpasses.
+Original Rocket: selected 30, attempted 30, passed 30, failed 0, skipped 0, timed out 0; pass rate 100.0%. Skips are excluded; timeouts count as attempted nonpasses.
 
-TMR Rocket: selected 30, attempted 1, passed 1, failed 0, skipped 29, timed out 0; pass rate 100.0%. Skips are excluded; timeouts count as attempted nonpasses.
+TMR Rocket: selected 30, attempted 30, passed 30, failed 0, skipped 0, timed out 0; pass rate 100.0%. Skips are excluded; timeouts count as attempted nonpasses.
 
 ## Outcome groups
 
-- Baseline PASS, TMR PASS: rv64ui-p-simple
-- Baseline SKIP, TMR SKIP: rv64ui-p-add, rv64ui-p-addi, rv64ui-p-sub, rv64ui-p-and, rv64ui-p-or, rv64ui-p-xor, rv64ui-p-sll, rv64ui-p-srl, rv64ui-p-sra, rv64ui-p-beq, rv64ui-p-bne, rv64ui-p-blt, rv64ui-p-bge, rv64ui-p-jal, rv64ui-p-jalr, rv64ui-p-lb, rv64ui-p-lh, rv64ui-p-lw, rv64ui-p-ld, rv64ui-p-sb, rv64ui-p-sh, rv64ui-p-sw, rv64ui-p-sd, rv64um-p-mul, rv64um-p-mulh, rv64um-p-div, rv64um-p-rem, rv64ua-p-amoadd_d, rv64ua-p-lrsc
+- Baseline PASS, TMR PASS: rv64ui-p-simple, rv64ui-p-add, rv64ui-p-addi, rv64ui-p-sub, rv64ui-p-and, rv64ui-p-or, rv64ui-p-xor, rv64ui-p-sll, rv64ui-p-srl, rv64ui-p-sra, rv64ui-p-beq, rv64ui-p-bne, rv64ui-p-blt, rv64ui-p-bge, rv64ui-p-jal, rv64ui-p-jalr, rv64ui-p-lb, rv64ui-p-lh, rv64ui-p-lw, rv64ui-p-ld, rv64ui-p-sb, rv64ui-p-sh, rv64ui-p-sw, rv64ui-p-sd, rv64um-p-mul, rv64um-p-mulh, rv64um-p-div, rv64um-p-rem, rv64ua-p-amoadd_d, rv64ua-p-lrsc
 
 
-Only `rv64ui-p-simple` passed on both. There are no observed failures on both, no observed baseline-pass/TMR-fail cases, and no observed baseline-fail/TMR-pass cases. The remaining 29 tests cannot yet be compared because they were deferred for the publication prerequisite. A 100% pass rate over one attempted test is not representative regression coverage and cannot exclude TMR regressions.
+Functional comparison:
+
+- Pass on both: all 30 selected tests, listed above.
+- Fail on both: none.
+- Baseline pass / TMR fail: none; no suspected TMR functional regression in this subset.
+- Baseline fail / TMR pass: none.
+- Not comparable due to toolchain/configuration differences: none.
+
+The paired wall timeouts were investigated and resolved by longer-limit reruns; no processor source correction was required. Successful results on this subset do not establish exhaustive ISA correctness, protection of unmodified state, or behavior under injected faults.
 
 ## 6. Issues and limitations
 
-- Git HTTPS push failed: `fatal: could not read Username for 'https://github.com': No such device or address`. No Git credential helper or SSH identity was available.
-- The connected GitHub account reported repository push permission, but create-tree and create-branch API operations both returned HTTP 403, `Resource not accessible by integration`. No team branch was modified, no source was published, and no remote commit SHA can be reported.
-- The full suite was not started, respecting the explicit source-publication-first requirement. This is the outstanding dependency, not a simulator timeout or hardware failure.
-- Initial isolated build preparation hit a sandbox SBT runtime-socket write restriction; the build was rerun with authorized access. An initial baseline assembly also rejected missing submodule Git metadata. Independent copies of the original Git metadata resolved that setup error, and the final baseline build passed. Copied generator JARs were excluded before building to avoid reusing generated TMR hardware in the baseline.
-- Builds emit upstream Scala deprecation/procedure-syntax/implicit-type warnings, multiple-main warnings, and CIRCT printf-encoded verification deprecation warnings. Host C++ also warns about `_XOPEN_SOURCE` redefinition. Representative excerpts are in build-warning-excerpts.txt; full warnings are in local logs. These warnings were not repaired as part of processor verification.
-- Make warns about duplicate generated assembly/benchmark target recipes. An initial baseline smoke using the installed ELF path also emitted a read-only intermediate-cleanup warning after a successful simulation. Repeating the smoke using the writable staged ELF removed that cleanup warning and produced the same positive completion. The original log is retained locally.
-- No fault injection, replica-repair observation, broad privileged/VM/FP execution, synthesis resource assessment, or radiation tolerance measurement was performed. No source fix was needed or attempted.
+- The initial publication attempt was blocked by missing Git HTTPS credentials and GitHub-app HTTP 403 responses. The user completed authentication; command-line push then succeeded. Independent clone verification completed before the full suite. This issue is resolved.
+- During the earlier isolated build setup, SBT required authorized access to its runtime socket/cache, and Chipyard required copied submodule Git metadata. Both setup issues were resolved before the successful builds. Copied generator JARs were excluded before independent builds to avoid baseline/TMR contamination.
+- Existing build warnings include upstream Scala deprecations, procedure syntax and implicit types, multiple-main warnings, CIRCT printf-encoded verification deprecation warnings, and host C++ `_XOPEN_SOURCE` redefinition. Representative examples are in build-warning-excerpts.txt; complete build logs remain local. These warnings were not changed as part of this assignment.
+- Make emits duplicate generated assembly/benchmark target-recipe warnings. An early smoke test using the read-only installed ELF path emitted an intermediate-cleanup warning after successful completion. Staging identical ELF copies in a writable directory resolved that cleanup issue for the reported full regression.
+- Initial sb/sh runs timed out at 120 seconds on both processors. Logs subsequently showed late PASSED markers, but the wrapper exit was 124, so those attempts remain TIMEOUT. The cleanup waited only for Make; it was repaired to kill remaining process-group members even if the leader exited. The paired 600-second retries passed with exit 0 and explicit completion. No ISA assertion or simulator cycle-limit failure was observed. Exact host timing was not profiled; the initial wall policy was marginal. Future reproduction uses 600 seconds for the full suite. See timeout-investigation.md for last observed PCs/instructions, late markers, durations and the distinction between initial and final statistics. No TMR-only regression was observed and no processor source modifications were needed.
+- Coverage excludes dedicated F/D/C, privileged, virtual-memory, multicore and system-software suites. No synthesis area/timing comparison, fault injection, replica repair observation or radiation-tolerance measurement was performed. Existing auxiliary ALU injection code was not enabled.
 
-Original branches, HEADs, staged/unstaged diffs and Git statuses in both original repositories were compared to the pre-work records and were unchanged after both builds. All five original source SHA-256 values also match the publishing snapshot. Preservation records are local under `/tmp/argus-daniel-20261110/protection`; source and baseline manifests are included here.
+The original source hashes, branches, HEADs, staged and unstaged changes are preserved. Initial preservation records remain under `/tmp/argus-daniel-20261110/protection`; published source and baseline manifests identify the tested snapshots. The full upstream Chipyard installation, unrelated collaborator branches and generated build outputs were not uploaded.
 
 ## 7. Next steps
 
-1. Authenticate command-line Git (for example `gh auth login` then `gh auth setup-git` if GitHub CLI is installed), or correct the connected app's repository write access. Do not place tokens in reports or scripts.
-2. Push the initial source snapshot to daniel_dev without force, verify the remote commit and source checksums, then run the prepared full 30-test suite on both builds with identical staged binaries. Investigate any baseline-pass/TMR-fail differences before changing processor source.
-3. Regenerate the comparison and report with the complete actual results, commit only compact evidence and scripts, and push the report commit. The present local source and report history is ready to publish; the required source-first remote milestone must still be verified before the full suite.
-4. Perform separate SEU fault injection: corrupt one register replica, verify that voted state and instruction execution remain correct, then verify correction feedback repairs the replica after an enabled clock edge. Include frontend, instruction buffer/queue, and EX/MEM/WB state; exercise holds, flushes, resets and clock gating. ISA regression passes alone do not demonstrate this property.
+The next major verification milestone is separate **SEU fault injection**. Deliberately corrupt one replica, verify that the majority-voted processor state and normal instruction execution remain correct, and then observe correction feedback repairing the replica after an enabled clock edge. Exercise frontend registers, instruction buffer/queue and EX/MEM/WB state, including holds, flushes, resets and clock gating. Include faults in valid/control state as well as datapath state. Passing the functional ISA subset alone does not demonstrate these properties.
+
+Additional functional coverage can expand to compressed and floating-point tests, privileged/VM suites, longer programs and more seeds. Fault-injection results should be reported separately from normal execution regressions.

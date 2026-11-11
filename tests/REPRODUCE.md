@@ -21,7 +21,7 @@ Paths in these commands describe this machine; adapt the activation paths elsewh
 
 ## Publication prerequisite
 
-Before the full suite, publish the initial source commit and verify its remote SHA. The local publishing repository is an independent root history. Once Git credentials work:
+Before the full suite, publish the initial source commit and verify its remote SHA. The local publishing repository is an independent root history. This prerequisite was completed before this regression: remote commit `06131946f449be5c0fcd0e09e473a49eb46093d4` was verified through an independent clone, including all five source hashes. Publication commands:
 
 ```bash
 cd /tmp/argus-daniel-20261110/publish
@@ -29,32 +29,36 @@ git push -u origin daniel_dev
 git ls-remote origin refs/heads/daniel_dev
 ```
 
-Never force-push. If daniel_dev appears remotely before the push, inspect it and stop on any conflict. Verify remote source bytes against source-sha256.json and confirm no build artifacts are in the tree. Record the verified source commit SHA below when invoking the suite.
+Never force-push. For later updates, inspect the remote branch and stop on any divergent history. Verify remote source bytes against source-sha256.json and confirm no build artifacts are in the tree. Record the verified source commit SHA below when invoking the suite.
 
 ## Identical regression suite
 
 selection.csv contains 30 real installed RV64 physical-environment ELF tests, categories and SHA-256 hashes. It covers base integer execution, branches/jumps, all four requested memory widths, multiplication, division/remainder and atomics. Only I/M/A instructions are selected; F/D/C-specific, virtual-memory and privileged tests remain outside this subset. No test was replaced or declared unsupported without execution.
 
-From the publishing checkout after environment activation:
+The actual run used the writable staging directory `/tmp/argus-daniel-20261110/isa-binaries`. It contains copies of the selected installed ELF binaries with identical SHA-256 hashes. When reproducing on another machine, create a writable directory, copy the 30 filenames listed in selection.csv from the installed ISA-test directory, and verify their hashes against that manifest. This also avoids Make attempting intermediate-file cleanup in a read-only toolchain directory.
+
+From the publishing checkout after environment activation (adapt the paths):
 
 ```bash
 python3 tests/run_suite.py --label tmr \
   --sim-dir /path/to/tmr-chipyard/sims/verilator \
-  --isa-dir "$RISCV/riscv64-unknown-elf/share/riscv-tests/isa" \
+  --isa-dir /tmp/argus-daniel-20261110/isa-binaries \
   --results-dir /path/to/local-results \
-  --source-published-sha VERIFIED_REMOTE_SOURCE_COMMIT
+  --wall-timeout 600 \
+  --source-published-sha 06131946f449be5c0fcd0e09e473a49eb46093d4
 python3 tests/run_suite.py --label baseline \
   --sim-dir /path/to/baseline-chipyard/sims/verilator \
-  --isa-dir "$RISCV/riscv64-unknown-elf/share/riscv-tests/isa" \
+  --isa-dir /tmp/argus-daniel-20261110/isa-binaries \
   --results-dir /path/to/local-results \
-  --source-published-sha VERIFIED_REMOTE_SOURCE_COMMIT
+  --wall-timeout 600 \
+  --source-published-sha 06131946f449be5c0fcd0e09e473a49eb46093d4
 python3 tests/compare.py /path/to/local-results/tmr_results.csv \
   /path/to/local-results/baseline_results.csv tests/comparison.md
 ```
 
-Each invocation uses `make CONFIG=RocketConfig BREAK_SIM_PREREQ=1 BINARY=<ELF> RANDOM_SEED=1 TIMEOUT_CYCLES=10000000 EXTRA_SIM_FLAGS=+verbose run-binary-fast`. The verbose flag enables TestDriver's positive PASSED marker. Full stdout/stderr are captured locally; no waves are requested. A PASS requires zero exit code plus `*** PASSED ***` and no `*** FAILED ***`. A zero exit code without positive completion is a FAIL requiring investigation. The process group is terminated after 120 wall seconds, with a five-second grace before killing a hang. Simulator timeouts are counted separately from FAIL but remain attempted nonpasses in the pass-rate denominator. Missing/mismatched ELF files are SKIP and excluded from attempted counts. Exact commands and evidence are stored in each CSV.
+Each invocation uses `make CONFIG=RocketConfig BREAK_SIM_PREREQ=1 BINARY=<ELF> RANDOM_SEED=1 TIMEOUT_CYCLES=10000000 EXTRA_SIM_FLAGS=+verbose run-binary-fast`. The verbose flag enables TestDriver's positive PASSED marker. Full stdout/stderr are captured locally; no waves are requested. A PASS requires zero exit code plus `*** PASSED ***` and no `*** FAILED ***`. A zero exit code without positive completion is a FAIL requiring investigation. Use `--wall-timeout 600` for new complete suite runs. The actual initial pass used the default 120 seconds; sb and sh timed out on both processors and were rerun on both with 600 seconds. The runner sends SIGTERM at the deadline and kills any remaining group members even if Make exits first, allowing up to five seconds for the leader to exit. The cleanup was verified with a SIGTERM-ignoring subprocess. Simulator timeouts are counted separately from FAIL but remain attempted nonpasses in the pass-rate denominator. Missing/mismatched ELF files are SKIP and excluded from attempted counts. Exact commands and evidence are stored in each CSV.
 
-The main reports should summarize all skips and failures; inspect complete local logs before attributing a failure to processor hardware. Publish only small relevant excerpts, CSVs, scripts and Markdown reports. Do not publish generator JARs, executables, full logs, generated RTL, or waveforms.
+For paired retries, use `--wall-timeout 600 --only rv64ui-p-sb rv64ui-p-sh` with a separate results directory for each retry phase. Keep the original CSVs/logs and merge only verified final outcomes; see timeout-investigation.md and the initial/retry CSVs for this run. The main reports should summarize all skips, failures and initial timeout outcomes; inspect complete local logs before attributing a failure to processor hardware. Publish only small relevant excerpts, CSVs, scripts and Markdown reports. Do not publish generator JARs, executables, full logs, generated RTL, or waveforms.
 
 ## Next verification milestone
 

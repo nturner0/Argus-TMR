@@ -1,11 +1,9 @@
 {
-  "recorded_utc": "2026-11-11T04:28:00.140210+00:00",
+  "recorded_utc": "2026-11-11T04:58:30.047633+00:00",
   "source_local_commit": "243fa54bb7f662a60192a7162282e0e4b05bb3d6",
-  "remote_branch_created": false,
-  "publication_status": "BLOCKED",
-  "git_push_error": "fatal: could not read Username for 'https://github.com': No such device or address",
-  "github_app_write_error": "HTTP 403 Resource not accessible by integration (create tree and create branch)",
-  "full_regression_started": false,
+  "remote_branch_created": true,
+  "publication_status": "SOURCE_PUBLISHED_AND_VERIFIED",
+  "full_regression_started": true,
   "source_preservation_verified": true,
   "builds": {
     "baseline": {
@@ -30,5 +28,53 @@
       "build_log_sha256": "80ecd7ff06c4f3d3992982db71519edb7bc19d5b1dfd15cdd69bbad9b4be6c39",
       "emitted_isa": "rv64imafdcbzicsr_zifencei_zihpm_zfh_zba_zbb_zbs_xrocket"
     }
-  }
+  },
+  "source_published_sha": "06131946f449be5c0fcd0e09e473a49eb46093d4",
+  "full_regression_completed": true,
+  "prior_publication_errors_resolved": {
+    "git_push_error": "fatal: could not read Username for 'https://github.com': No such device or address",
+    "github_app_write_error": "HTTP 403 Resource not accessible by integration (create tree and create branch)",
+    "resolution": "User completed authentication; command-line Git push succeeded; independent clone verified source before regression."
+  },
+  "regression": {
+    "tmr": {
+      "selected": 30,
+      "attempted": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "timed_out": 0,
+      "pass_rate_percent": 100.0
+    },
+    "baseline": {
+      "selected": 30,
+      "attempted": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "timed_out": 0,
+      "pass_rate_percent": 100.0
+    }
+  },
+  "regression_log_directories": [
+    "/tmp/argus-daniel-20261110/regression-results",
+    "/tmp/argus-daniel-20261110/regression-retries"
+  ],
+  "retry_summary": {
+    "tmr": {
+      "initial_passed": 28,
+      "initial_timeouts": 2,
+      "retry_passed": 2,
+      "total_invocations": 32,
+      "final_passed": 30
+    },
+    "baseline": {
+      "initial_passed": 28,
+      "initial_timeouts": 2,
+      "retry_passed": 2,
+      "total_invocations": 32,
+      "final_passed": 30
+    }
+  },
+  "tests_with_matching_completion_cycle_counts": 30
 }
