@@ -1,0 +1,7 @@
+{
+  "src/main/scala/rocket/Frontend.scala": "8ae571f0cadd67c4ecc65490fb7089120dca6c26cf374bea93281db5c3aa8548",
+  "src/main/scala/rocket/IBuf.scala": "c12bb5c4d41c1b5628c6a31205f5cda914bb9c9cb400b7c663a68cf50b0fa19f",
+  "src/main/scala/rocket/RocketCore.scala": "62c736c110bf4453296d25eaf4017d67558fd20b57cf709af4c7cd8c13d85b28",
+  "src/main/scala/rocket/TMRALU.scala": "86423a9aeb52c17093eaf6ac6b77fd6f80862b46c60252dacf2a2ba26e51dfd9",
+  "src/main/scala/rocket/TMRShiftQueue.scala": "c89371be1df56fc38bd838ed57f1968a372b5351a52ed40886867492f3c73165"
+}
