@@ -1,4 +1,4 @@
-# Argus-TMR: Daniel's Rocket state protection
+# Argus-TMR: Rocket state protection
 
 Faithful source snapshot of Daniel Khalkhali's local implementation, taken 2026-11-10. This independent branch does not incorporate teammates' development branches.
 
