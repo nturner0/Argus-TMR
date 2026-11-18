@@ -60,6 +60,6 @@ Each invocation uses `make CONFIG=RocketConfig BREAK_SIM_PREREQ=1 BINARY=<ELF> R
 
 For paired retries, use `--wall-timeout 600 --only rv64ui-p-sb rv64ui-p-sh` with a separate results directory for each retry phase. Keep the original CSVs/logs and merge only verified final outcomes; see timeout-investigation.md and the initial/retry CSVs for this run. The main reports should summarize all skips, failures and initial timeout outcomes; inspect complete local logs before attributing a failure to processor hardware. Publish only small relevant excerpts, CSVs, scripts and Markdown reports. Do not publish generator JARs, executables, full logs, generated RTL, or waveforms.
 
-## Next verification milestone
+## Reproduce the separate SEU simulations
 
-Inject an SEU into one replica, check the voted architectural behavior, and observe correction of that replica after an enabled clock edge. These ISA tests alone cannot establish SEU recovery or radiation tolerance.
+The 30 ISA tests use fault-free simulations. The separate SEU campaigns inject a replica bit between clock edges and check the voted behavior and subsequent stored state. [Run the SEU campaigns and compare with their recorded outputs](seu/README.md).
