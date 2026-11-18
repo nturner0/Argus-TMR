@@ -1,0 +1,6 @@
+ex hold=120 advance=120
+mem hold=120 advance=120
+wb hold=120 advance=120
+accepted=625 retired=625 injections=720
+PASS: two-replica negative control diverged as expected
+PASS: all single-replica cases matched the fault-free core

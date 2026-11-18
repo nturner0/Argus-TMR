@@ -31,4 +31,4 @@ Current verification: both fresh RocketConfig builds PASS. The same 30 selected 
 
 ## Fault injection
 
-SEU injection and replica correction are not yet demonstrated. Next work should corrupt one replica, verify voted state remains correct, and observe repair after an enabled clock edge. Auxiliary ALU injection code is not evidence of pipeline SEU recovery.
+Directed RTL fault injection verified masking and next-edge repair on held EX/MEM/WB program counters and one frontend queue data bit. The PC campaign also checked correct capture on advancing edges. See the [SEU testbenches, coverage and recorded results](tests/seu/README.md).
