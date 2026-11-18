@@ -32,3 +32,5 @@ Current verification: both fresh RocketConfig builds PASS. The same 30 selected 
 ## Fault injection
 
 Directed RTL fault injection verified masking and next-edge repair on held EX/MEM/WB program counters and one frontend queue data bit. The PC campaign also checked correct capture on advancing edges. See the [SEU testbenches, coverage and recorded results](tests/seu/README.md).
+
+A subsequent Verilator sweep exercised each bit of each identified replica in Rocket EX/MEM/WB, Frontend, IBuf and the fetch queue. All 7,110 injections matched a fault-free reference under the recorded stimulus, including all 62 protected EX/MEM/WB declarations. [Coverage, limitations and reproduction](tests/seu/state-sweep/README.md)

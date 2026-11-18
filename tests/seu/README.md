@@ -2,12 +2,13 @@
 
 | Target | Simulated upset | Result |
 |---|---|---|
+| Rocket, Frontend, IBuf and TMRShiftQueue | Each emitted A/B/C replica bit across 310 fields | 7,110/7,110 matched the fault-free model |
 | EX, MEM and WB program-counter registers | Each of 40 bits in each A/B/C copy while holding and while advancing | 720/720 matched the fault-free core |
 | Frontend queue | Bit 0 of instruction data in replica B, entry 0, during a hold | Output stayed correct and B recovered on the next edge |
 
-The pipeline campaign directly targeted 3 of the 62 protected declarations or aggregates in RocketCore.scala. The other 59 await direct injection. The queue case belongs to a separate module and is counted separately. The [pipeline coverage inventory](pipeline/coverage.csv) lists each declaration and the number of recorded injections against it. These counts describe this RocketConfig RTL campaign. Some source declarations contain multiple fields or depend on configuration.
+The bit-by-bit sweep reached all 62 inventoried Rocket EX/MEM/WB declarations, plus 19 frontend, three IBuf and two queue declarations or aggregates. The earlier PC and queue experiments independently tested correction feedback during a known hold. The [sweep report](state-sweep/README.md) details the stimulus and pass criteria. The [pipeline inventory](pipeline/coverage.csv) shows how many injections each campaign contributed to each Rocket declaration.
 
-Both C++ testbenches run against generated RocketConfig RTL. They use Verilator's public read/write interface to toggle a storage bit while the simulated clock is low and then evaluate the model before raising the clock. This models a digital bit upset between edges. Coverage is limited to the listed sites and stimulus.
+All campaigns toggle a storage bit between clock edges in generated RocketConfig RTL using Verilator's public read/write interface.
 
 The [pipeline harness](pipeline/campaign.cpp) drives a stream of ADDI instructions with gaps into two copies of the Rocket core. For each injection it verifies that exactly one copy changed, the voted PC and expected next PC agree with the fault-free reference, and all three copies contain that next PC after the edge. Hold cases check repair of the old value. Advance cases require a different next PC. Both models accepted and retired 625 instructions. A separate two-replica control produced the expected wrong majority. See the [individual cases](pipeline/recorded/cases.csv) and [run summary](pipeline/recorded/result.txt).
 
